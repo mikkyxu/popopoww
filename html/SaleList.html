@@ -1,0 +1,45 @@
+<section id="SaleList">
+      <header>
+            <nav class="left">
+                <a href="#" data-target="back" data-icon="undo">返回</a>
+            </nav>
+            <nav class="right">
+                <a href="" data-icon="plus" id="addlist">新增</a>
+            </nav>
+            <h1 class="title">售中列表</h1>
+        </header>
+        <article class="active" id="SaleList_article">
+            <ul class="list">
+            </ul>
+        </article>
+
+</section>
+<script id="salelist_tpl" type="text/html">
+{each result}
+    {if $value.type=='1'}
+    <li data-selected="selected" data-icon="next" data-id={$value.id} data-pid={$value.pid} data-section="#preSale" class="clearfix" >
+        <span class="fl" data-icon="tags">售前</span><div class="tag">{$value.sdate}</div><div class="tag">{$value.creatername}</div>
+    </li>
+    {/if}
+    {if $value.type=='2'}
+    <li data-selected="selected" data-icon="next" data-id={$value.id} data-pid={$value.pid} data-section="#inSale" class="clearfix">
+        <span class="fl" data-icon="user">售中</span><div class="tag">{$value.sdate}</div><div class="tag">{$value.creatername}</div>
+    </li>
+    {/if}
+    {if $value.type=='3'}
+    <li data-selected="selected" data-icon="next" data-id={$value.id} data-pid={$value.pid} data-section="#afterSale" class="clearfix">
+        <span class="fl" data-icon="quill">签约</span><div class="tag">{$value.sdate}</div><div class="tag">{$value.creatername}</div>
+    </li>
+    {/if}
+    {if $value.type=='4'}
+    <li data-selected="selected" data-icon="next" data-id={$value.id} data-pid={$value.pid} data-section="#payment" class="clearfix">
+        <span class="fl" data-icon="books">回款</span><div class="tag">{$value.sdate}</div><div class="tag">{$value.creatername}</div>
+    </li>
+    {/if}
+    {if $value.type=='5'}
+    <li data-selected="selected" data-icon="next" data-id={$value.id} data-pid={$value.pid} data-section="#approval" class="clearfix">
+        <span class="fl" data-icon="books">审批</span><div class="tag">{$value.sdate}</div><div class="tag">{$value.creatername}</div>
+    </li>
+    {/if}
+{/each}
+</script>
