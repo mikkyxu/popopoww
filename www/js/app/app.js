@@ -1,3 +1,26 @@
+document.addEventListener('deviceready', onDeviceReady, false);
+function onDeviceReady(){
+    //注册后退按钮
+    document.addEventListener("backbutton", function (e) {
+        if(J.isMenuOpen){
+            J.Menu.hide();
+        }else if(J.hasPopupOpen){
+            J.closePopup();
+        }else{
+            
+            var sectionId = $('section.active').attr('id');
+            if(sectionId == 'index_section'){
+                J.confirm('提示','是否退出程序？',function(){
+                    navigator.app.exitApp();
+                });
+            }else{
+                J.Router.back();
+            }
+        }
+    }, false);
+    App.run();
+    navigator.splashscreen.hide();
+}
 var App = (function(){
     var debug = false;
     var pages = {};
