@@ -1,0 +1,70 @@
+<section id="afterSale">
+      <header>
+            <nav class="left">
+                <a href="#" data-target="back" data-icon="undo">取消</a>
+            </nav>
+            <nav class="right">
+                <a href="#" data-target="" data-icon="checkmark" class="submit">保存</a>
+            </nav>
+            <h1 class="title">签约信息</h1>
+        </header>
+        <article data-scroll="true" id="form_article" class="active">
+        <div class="indented">
+            <form class="input-group">
+            <input type="input" value="" name="id" id="ID" style="display:none;">
+            <input type="input" value="" name="pid" id="PID" style="display:none;">
+            <div class="input-row">
+                <label>回款方式</label>
+                <div class="select-wraper">
+                <select id="BackMoneyMode" name="BackMoneyMode">
+                    <option value="" selected="selected">请选择</option>
+                    <option value="1">现金</option>
+                    <option value="2">支票</option>
+                    <option value="3">银行</option>
+                </select>
+                </div>
+            </div>
+            <div class="input-row">
+                <label>回款周期</label>
+                <input type="text" placeholder="请输入回款周期" style="border: none;" value="" id="BackMoneyTime" name="BackMoneyTime" required>
+            </div>
+            <div class="input-row">
+                <label>实际销量</label>
+                <input type="text" placeholder="请输入实际销量" style="border: none;" value="" name="RealSaleCount" id="RealSaleCount" required>
+             </div>
+            <div class="input-row">
+                <label>折扣率</label>
+                <input type="text" placeholder="请输入折扣率:7.5" style="border: none;" value="" name="Discount" id="Discount" required>
+             </div>
+            <div class="input-row">
+                <label>赠送数量</label>
+                <input type="text" placeholder="赠送数量" style="border: none;" value="" name="PresentCount" id="PresentCount" required>
+            </div>
+            <div class="input-row">
+                <label>生成订单</label>
+                <div class="select-wraper">
+                <select name="GeneOrder" id="GeneOrder">
+                    <option value="" selected="selected">请选择</option>
+                    <option value="1">是</option>
+                    <option value="2">否</option>
+                </select>
+                </div>
+             </div>
+            <div class="input-row">
+                <label>发票类型</label>
+                <div class="select-wraper">
+                <select name="BillType" id="BillType">
+                    <option value="" selected="selected">请选择</option>
+                    <option value="1">商品-普通发票</option>
+                    <option value="2">商品-公司发票</option>
+                </select>
+                </div>
+            </div>
+            <div class="input-row" style="display:block;">
+                <label>备注</label>
+                <textarea name="Remark" id="Remark" placeholder="请输入备注信息"></textarea>
+            </div>
+            </form>
+            </div>
+        </article>
+</section>

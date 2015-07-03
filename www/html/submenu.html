@@ -1,0 +1,43 @@
+<section id="submenu" data-transition="slide">
+      <header>
+            <nav class="left">
+                <a href="#" data-target="back" data-icon="undo">返回</a>
+            </nav>
+            <h1 class="title" style="left:80px;right:80px;width: auto;overflow: hidden;text-overflow: ellipsis;"></h1>
+        </header>
+        <article class="active" id="submenu_article">
+            <ul class="list">
+            </ul>
+        </article>
+        <footer>
+            <a href="J.Router.goTo('#index');J.Router.showArticle('#index_pre_sale_article',$('#index'));"  data-target="section_article"  data-icon="tags" class="active">售前</a>
+            <a  href="J.Router.goTo('#index');J.Router.showArticle('#index_in_sale_article',$('#index'));"  data-target="section_article" id="anchor_user_service" data-icon="user">售中</a>
+            <a  href="J.Router.goTo('#index');J.Router.showArticle('#index_sign_article',$('#index'));"  data-target="section_article" data-icon="quill">签约</a>
+            <a h href="J.Router.goTo('#index');J.Router.showArticle('#index_payment_article',$('#index'));"  data-target="section_article" data-icon="books">回款</a>
+        </footer>
+</section>
+<script id="submenu_tpl" type="text/html">
+    <li data-selected="selected" data-icon="next" data-no="{$data.companyId}" data-section='#clientDetail'>
+        <a data-icon="book">客户信息</a>
+    </li>
+    {if $data.menuType=='1'}
+    <li data-selected="selected" data-icon="next" data-menuType={$data.menuType} data-section="#SaleList" >
+        <a data-icon="tags">售前信息</a>
+    </li>
+    {/if}
+    {if $data.menuType=='2'}
+    <li data-selected="selected" data-icon="next" data-menuType={$data.menuType} data-section="#SaleList">
+        <a data-icon="user">售中信息</a>
+    </li>
+    {/if}
+    {if $data.menuType=='3'}
+    <li data-selected="selected" data-icon="next" data-menuType={$data.menuType} data-section="#SaleList">
+        <a data-icon="quill">签约信息</a>
+    </li>
+    {/if}
+    {if $data.menuType=='4'}
+    <li data-selected="selected" data-icon="next" data-menuType={$data.menuType} data-section="#SaleList">
+        <a data-icon="books">回款信息</a>
+    </li>
+    {/if}
+</script>

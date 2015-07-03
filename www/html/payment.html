@@ -1,0 +1,47 @@
+<section id="payment">
+      <header>
+            <nav class="left">
+                <a href="#" data-target="back" data-icon="undo">取消</a>
+            </nav>
+            <nav class="right">
+                <a href="#" data-target="" data-icon="checkmark" class='submit'>保存</a>
+            </nav>
+            <h1 class="title">回款信息</h1>
+        </header>
+        <article data-scroll="true" id="form_article" class="active">
+        <div class="indented">
+            <form class="input-group">
+            <input type="input" value="" name="id" id="ID" style="display:none;">
+            <input type="input" value="" name="pid" id="PID" style="display:none;">
+            <div class="input-row">
+                <label>应收款总额</label>
+                <input type="text" placeholder="请输入应收款总额xxx.xxx" style="border: none;" value="" name="PayAmount" id="PayAmount" required>
+            </div>
+            <div class="input-row">
+                <label>已收款总额</label>
+                <input type="text" placeholder="请输入已收款总额" style="border: none;" value="" name="RealAmount" id="RealAmount" required>
+            </div>
+            <div class="input-row">
+                <label>回款方式</label>
+                <div class="select-wraper">
+                <select id="BackMoneyMode" name="BackMoneyMode">
+                    <option value="" selected="selected">请选择</option>
+                    <option value="1">现金</option>
+                    <option value="2">支票</option>
+                    <option value="3">银行汇款</option>
+                </select>
+                </div>
+            </div>
+            <div class="input-row">
+                <label>回款金额</label>
+                <input type="text" placeholder="请输入回款金额" style="border: none;" value="" name="BackMoney" id="BackMoney" required>
+            </div>
+            <div class="input-row" style="display:block;">
+                <label>备注</label>
+                <textarea name="Remark" id="Remark" placeholder="请输入备注信息"></textarea>
+            </div>
+                <!-- <input type="text" placeholder="备注" style="border: none;" value=""> -->
+            </form>
+            </div>
+        </article>
+</section>

@@ -1,3 +1,9 @@
+.indented > * {
+    margin: 5px 10px;
+}
+.indented{
+    padding-bottom: 300px;
+}
 article{
     background-color: #eee;
     color: #666;
@@ -31,6 +37,85 @@ ul.list>li{
     font-size: 1em;
 }
 .cloud-tag{
-    float: left;margin:10px 15px;padding: 3px;background-color: #E67E22;
+    float: left;margin-left:5px;padding:3px 5px;background-color: #E67E22;
     color: #fff;border-radius: 3px;font-size: .8em;
+}
+header {
+  top: 0;display: -webkit-box;display: box;background-color: #0093d5;
+-webkit-box-shadow: 0 1px 3px rgba(0,0,0,.25),inset 0 1px 0 #03b1ff,inset 0 -1px 0 #007db5;box-shadow: 0 1px 3px rgba(0,0,0,.25),inset 0 1px 0 #03b1ff,inset 0 -1px 0 #007db5;color: #fff;
+}
+
+ul>li>.right{
+    color: #BDC3C7;
+    position: absolute;
+    top:50%;
+    right:8px;
+    margin-top: -9px;
+}
+[data-scroll="true"]{
+    overflow: auto;
+}
+
+select{
+  width: 100%;
+  height: auto;
+  border: 0 none;
+  outline: 0 none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: transparent;
+  background-image: none;
+  box-shadow:none;
+  padding: 0;
+  margin: 0;
+}
+.select-wraper{
+  padding-top: 10px;
+  width: 90%;
+  position: relative;
+  -webkit-box-flex:1;
+}
+.select-wraper::after{
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  width: 7px;
+  height: 7px;
+  border-top: solid 2px #c4c4c4;
+  border-right: solid 2px #c4c4c4;
+  -webkit-transform: rotate(135deg);
+  -ms-transform: rotate(135deg);
+  transform: rotate(135deg);
+  margin-top: -3px;
+}
+select:focus {
+  outline: none;
+}
+textarea{
+    padding:0px 12px;
+    margin:2px;
+    border-left: 1px #ddd solid;
+    border-right: 1px #ddd solid;
+    width: 90%;
+    display: block;
+    background: transparent;
+    box-shadow:none;
+    border:1px solid #D1D3D3;
+    border-top:1px solid #A5A6A6;
+    border-radius:3px;
+    display: block;
+    border: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+::-webkit-validation-bubble-message {
+    padding: 1em;
+}
+
+input:required, textarea:required {
+    padding-right:30px;
+    background: url(../images/red_asterisk.png) no-repeat 98% center;
 }

@@ -7,7 +7,7 @@ function onDeviceReady(){
         }else if(J.hasPopupOpen){
             J.closePopup();
         }else{
-			
+            
             var sectionId = $('section.active').attr('id');
             if(sectionId == 'index_section'){
                 J.confirm('提示','是否退出程序？',function(){
@@ -22,10 +22,11 @@ function onDeviceReady(){
     navigator.splashscreen.hide();
 }
 var App = (function(){
+    var debug = false;
     var pages = {};
     var run = function(){
         $.each(pages,function(k,v){
-            var sectionId = '#'+k+'_section';
+            var sectionId = '#'+k;
             $('body').delegate(sectionId,'pageinit',function(){
                 v.init && v.init.call(v);
             });
@@ -40,15 +41,20 @@ var App = (function(){
         });
         Jingle.launch({
             showWelcome:false
+            // transitionType:'slideUp'
         });
+
         _initUserInfo();
     };
+
     var page = function(id,factory){
         return ((id && factory)?_addPage:_getPage).call(this,id,factory);
     }
+
     var _addPage = function(id,factory){
         pages[id] = new factory();
     };
+
     var _getPage = function(id){
         return pages[id];
     }
@@ -75,42 +81,7 @@ var App = (function(){
     }
 
     var showLogin = function(callback){
-        J.popup({
-            pos : {
-                top:0,left:0,bottom:0,right:0
-            },
-            tplId : 'login_tpl',
-            onShow : function(){
-                $('#btn_login').tap(function(){
-                    _login(callback);
-                });
-            }
-        });
-    }
-
-    var _login = function(callback){
-        var username = $('#username').val();
-        var pwd = $('#password').val();
-        if(username == '' || pwd == ''){
-            J.showToast('请填写完整的信息！');
-        }else{
-            $('#btn_login .icon').removeClass('lock').addClass('spinner');
-            SzLibAPI.login(username,pwd,function(result){
-                $('#btn_login .icon').removeClass('spinner').addClass('lock');
-                if(result.error){
-                    J.showToast(result.error,'error');
-                }else{
-                    App.userInfo = result;
-                    App.userInfo.p = pwd;
-                    window.localStorage.setItem('userInfo',JSON.stringify(result));
-                    callback.call();
-                }
-            },function(){
-                J.showToast('请检查您的网络连接','error');
-            });
-
-        }
-        return false;
+        J.Router.goTo('#login');
     }
 
     var _initUserInfo = function(){
@@ -122,7 +93,8 @@ var App = (function(){
         run : run,
         page : page,
         checkNetwork : checkNetwork,
-        showLogin : showLogin
+        showLogin : showLogin,
+        debug : debug
     }
 }());
 if(J.isWebApp){
@@ -131,644 +103,540 @@ if(J.isWebApp){
     })
 }
 
+App.page('login',function(){
+    this.init = function(){
+        $('#btn_login').tap(function(){
+            _login(function(){J.Router.goTo('#index');});
+        });
+    };
+
+    var _login = function(callback){
+        var username = $('#username').val();
+        var pwd = $('#password').val();
+        if(username == '' || pwd == ''){
+            J.showToast('请填写完整的信息！');
+        }else{
+            J.showMask(); 
+            $('#btn_login .icon').removeClass('lock').addClass('spinner');
+            crmApi.login(username,pwd,function(data){
+                J.hideMask();
+                $('#btn_login .icon').removeClass('spinner').addClass('lock');
+                if(data.status!=0){
+                    J.showToast(data.message,'error');
+                }else{
+                    App.userInfo = data.result;
+                    window.localStorage.setItem('userInfo',JSON.stringify(data.result));
+                    callback.call();
+                }
+            },function(){
+                J.hideMask();
+                J.showToast('请检查您的网络连接','error');
+            });
+             
+        }
+        return false;
+    }
+})
+
+App.page('submenu',function(){
+    var $list,$section;
+    this.init = function(){
+        $list = $('#submenu_article ul');
+        $list.on('tap','li',function(){
+           App.page('SaleList').mtype = $(this).attr('data-menuType');
+            $section = $(this).attr('data-section');
+            //alert($section);
+            J.Router.goTo($section);
+        });
+    };
+
+    var data = {};
+    this.load = function(){
+        data.menuType = this.menuType;
+        data.companyId = this.companyId;
+        J.tmpl('#submenu_article ul','submenu_tpl',data);
+        $('#submenu h1.title').html(this.companyName);
+    };
+
+});
+
 App.page('index',function(){
     this.init = function(){
+        if(!App.userInfo){
+            App.showLogin();
+        }
+        $('#index ul').on('tap','li',function(){
+            App.page('submenu').menuType = $(this).parent().children(".divider").attr('data-menuType');
+            App.page('submenu').companyId = $(this).attr('data-no');
+            App.page('submenu').pId = $(this).attr('data-pid');
+            App.page('submenu').companyName = $(this).attr('data-name');
+            J.Router.goTo('#submenu');
+            if(App.page('submenu').menuType =='2'){
+                App.page('SaleList').dstatus = $(this).attr('data-status');
+            }
+        });
+    };
+    this.load = function(){
+        if(!App.userInfo){
+            return false;
+        }
         _initIndex();
-        _initUserService();
-        _initTelService();
-        _initSearchService();
-        $('#btn_scan_barcode').on('tap',function(){
-            window.plugins.barcodeScanner.scan('one',function(result) {
-                    if(!result.cancelled){
-                        App.page('search').searchParam = {
-                            value : result.text,
-                            searchType : 'isbn',
-                            bookType : ''
-                        }
-                        J.Router.turnTo('#search_section');
-                    }
-                }, function(error) {
-                    J.showToast("扫描失败: " + error,'error');
-                }
-            );
-        })
-    };
+    }
     _initIndex = function(){
-        new J.Slider({
-            selector : '#index_images',
-            noDots : true,
-            autoPlay : true
-        });
-    }
-    _initUserService = function(){
-        $('#anchor_user_service').tap(function(){
-            var $this = $(this);
-            if(App.userInfo){
-                J.Router.showArticle('#index_user_article',$this);
+        if(App.debug){
+           console.info(App.userInfo); 
+        }
+        J.showMask(); 
+        switch (App.userInfo.uName) {
+            case "销售经理": uType = 1 ; break;
+            case "销售代表": uType = 2 ; break;
+        }
+        crmApi.getClientList(App.userInfo.eId,uType,function(data){
+            J.hideMask(); 
+            if(data.status!=0){
+              J.showToast(data.message,'error');
             }else{
-                var $this = $(this);
-                App.showLogin(function(){
-                    J.closePopup();
-                    J.Router.showArticle('#index_user_article',$this);
-                });
+              J.tmpl('#index_pre_sale_article ul','tel_article01_tpl',data);
+              J.tmpl('#index_in_sale_article ul','tel_article02_tpl',data);
+              J.tmpl('#index_sign_article ul','tel_article03_tpl',data);
+              J.tmpl('#index_payment_article ul','tel_article04_tpl',data); 
+              J.Scroll('#index_pre_sale_article');
+              J.Scroll('#index_in_sale_article');
+              J.Scroll('#index_sign_article');
+              J.Scroll('#index_payment_article');
             }
-        });
-        $('#btn_exit_user').on('tap',function(){
-            window.localStorage.removeItem("userInfo");
-            App.userInfo = null;
-            $('#index_section footer a:eq(0)').trigger('tap');
-        });
-        $('#index_user_article').on('articleshow',function(){
-            $('#txt_username').text(App.userInfo.userName);
-            $('#txt_loginname').text(App.userInfo.loginName);
-            $('#txt_cardno').text(App.userInfo.cardNo);
-        });
-        $('#link_change_loginname').on('tap',function(){
-            J.popup({
-                tplId:'tpl_change_loginname',
-                pos : 'top',
-                height : 190,
-                showCloseBtn : false,
-                onShow : function(){
-                    var $this = $(this);
-                    //J.Element.init(this);
-                    $this.find('button').on('tap',function(){
-                        var $loading = $(this).next();
-                        var newName = $this.find('input').val();
-                        if(_checkUserName(newName)){
-                            $loading.show();
-                            SzLibAPI.changeLoginName(App.userInfo.loginName,App.userInfo.p,newName,function(data){
-                                $loading.hide();
-                                if(data.success){
-                                    J.showToast(data.success,'success');
-                                    App.userInfo.loginName = newName;
-                                    $('#txt_loginname').text(newName);
-                                    window.localStorage.setItem('userInfo',JSON.stringify(App.userInfo));
-                                    J.closePopup();
-                                }else{
-                                    J.showToast(data.failure,'error');
-                                }
-                            })
-                        }
-                    })
-                }
-            })
-        });
-        $('#link_change_pwd').on('tap',function(){
-            J.popup({
-                tplId:'tpl_change_password',
-                pos : 'top',
-                height : 190,
-                showCloseBtn : false,
-                onShow : function(){
-                    var $this = $(this);
-                    $this.find('button').on('tap',function(){
-                        var $loading = $(this).next();
-                        var newPwd = $this.find('input').val();
-                        if(_checkPassword(newPwd)){
-                            $loading.show();
-                            SzLibAPI.changePassword(App.userInfo.loginName,App.userInfo.p,newPwd,function(data){
-                                $loading.hide();
-                                if(data.success){
-                                    J.showToast(data.success,'success');
-                                    App.userInfo.p = newPwd;
-                                    window.localStorage.setItem('userInfo',JSON.stringify(App.userInfo));
-                                    J.closePopup();
-                                }else{
-                                    J.showToast(data.failure,'error');
-                                }
-                            })
-                        }
-                    })
-                }
-            })
+        },function(){
+            J.showToast('请检查您的网络连接','error');
         });
 
-        var _checkUserName = function(userName){
-            if(userName.length<4){
-                J.showToast("登录名长度太短，请重新输入！");
-                return false;
-            }
-            if($.trim(userName)==""){
-                J.showToast("登录名输入不能为空！");
-                return false;
-            }
-            if(userName==App.userInfo.loginName){
-                J.showToast("新旧登录名一致，请确认！");
-                return false;
+    }
+});
 
+App.page('clientDetail',function(){
+    this.load = function(){
+        $('#clientDetail_article div').empty();
+        var id = App.page('submenu').companyId;
+        J.showMask(); 
+        crmApi.getClientDetail(id,function(data){
+            J.hideMask(); 
+            if(data.status!=0){
+                J.showToast(data.message,'error');
+            }else{
+                J.tmpl('#clientDetail_article div','client_tpl',data.result[0]); 
+                J.Scroll('#clientDetail_article');
             }
-            if(/.*[\u4e00-\u9fa5]+.*$/.test(userName)){
-                J.showToast("不能含有汉字！");
-                return false;
-            }
-            return true;
-        }
-        var _checkPassword = function(password){
-            if($.trim(password)==""){
-                J.showToast("密码不能为空！");
-                return false;
-            }
-            if($.trim(password)== App.userInfo.p){
-                J.showToast("与旧密码一样");
-                return false;
-            }
-            return true;
-        }
-
+        },function(){
+            J.hideMask();
+            J.showToast('请检查您的网络连接','error');
+        });
     };
-    var _initTelService = function(){
-        $.getJSON('data/telservice.json',function(data){
-            J.tmpl('#index_phone_article ul','tel_service_tpl',data);
-            J.Scroll('#index_phone_article');
-        });
-    }
-    var _initSearchService = function(){
-        $('#btn_index_search').on('tap',function(){
-            var value =  $('#index_search_value').val();
-            if($.trim(value) == ''){
-                J.showToast('请输入关键字');
-                return;
-            }
-            App.page('search').searchParam = {
-                value : value,
-                searchType : 'all',
-                bookType : $('#checkbox_reserve').data('checkbox') == 'checked'?'local_reserve':''
-            }
-            J.Router.turnTo('#search_section');
-        });
-        $('#index_search_article').on('articleshow',function(){
-            var loaded = $(this).data('loaded');
-            if(loaded)return;
-            $(this).data('loaded',true);
-            var date = new Date();
-            var year = date.getFullYear();
-            var month = date.getMonth()+1;
-            if(month<10){
-                month = '0'+month;
-            }else{
-                month = month + '';
-            }
-            SzLibAPI.getNewBookList(year+month,function(data){
-                J.tmpl('#newbook_container','tpl_cloud_tag',data);
-            })
-        });
-        $('#newbook_container').on('tap','div.cloud-tag',function(){
-            App.page('book').recordNo = $(this).attr('data-recordno');
-            J.Router.turnTo('#book_section');
-        })
-    }
 });
-App.page('notice',function(){
-    var $list,$getMoreBtn,pageNo;
-    this.init = function(){
-        $list = $('#notice_article ul');
-        $getMoreBtn = $list.next();
-        J.showMask();
-        pageNo = 1;
-        _getPage();
-        _subscribeEvents();
-    }
-    var _getPage = function(){
-        SzLibAPI.getNotices(pageNo,function(data){
-            if(pageNo == 1){
-                _renderFirstPage(data);
+
+App.page('approval',function(){
+    this.load = function(){
+        $('#Approval_article div').empty();
+        var pid = App.page('submenu').pId ;
+        var id = App.page('submenu').sId;
+        J.showMask(); 
+        crmApi.getApprovalList(id,pid,function(data){
+            J.hideMask(); 
+            if(data.status!=0){
+                J.showToast(data.message,'error');
             }else{
-                _renderNextPage(data);
+                J.tmpl('#Approval_article div','approval_tpl',data.result[0]); 
+                J.Scroll('#Approval_article');
             }
-            J.Scroll('#notice_article');
+        },function(){
+            J.hideMask();
+            J.showToast('请检查您的网络连接','error');
         });
-    }
-    var _renderFirstPage = function(data){
-        if(data.length > 0){
-            J.Scroll('#notice_article').scrollTo(0,0);
-            J.tmpl($list,'tpl_notice',data,'replace');
-            $getMoreBtn.text('点击加载更多...').show();
-        }else{
-            $getMoreBtn.hide();
-            J.Template.no_result($list);
+    };
+});
+
+App.page('SaleList',function(){
+    var arr0 = ['','售前','售中','签约','回款','审批'];
+    var arr1 = ['','#preSale','#inSale','#afterSale','#payment','#approval'];
+    this.init = function(){
+        if(!App.userInfo){
+            App.showLogin();
         }
-        J.hideMask();
-    }
-    var _renderNextPage = function(data){
-        if(data.length > 0){
-            J.tmpl($list,'tpl_notice',data,'add');
-            $getMoreBtn.text('点击加载更多...').show();
-        }else{
-            pageNo--;
-            $getMoreBtn.text('亲，木有了~~').show();
-        }
-    }
-    var _subscribeEvents = function(){
+        $list = $('#SaleList ul');
         $list.on('tap','li',function(){
-            var id = $(this).attr('data-id');
-            App.page('news').id = id;
-            J.Router.turnTo('#news_section');
+            $section = $(this).attr('data-section');
+            $page = $section.replace('#','');
+            App.page($page).sid = $(this).attr('data-id');
+            App.page($page).pid = $(this).attr('data-pid');
+            J.Router.goTo($section);
         });
-        $getMoreBtn.on('tap',function(){
-            $getMoreBtn.text('正在加载...');
-            pageNo++;
-            _getPage();
+        $('#SaleList a#addlist').on('tap','',function(){
+            for (var i = arr1.length - 1; i > 0; i--) {
+                var page =arr1[i].replace('#','');
+                App.page(page).sid = null;
+                App.page(page).pid = null;
+            };
+       
+            J.Router.goTo($('#SaleList a#addlist').attr('href'));
         });
-        $('#notice_refresh').on('tap',function(){
-            J.showMask();
-            pageNo = 1;
-            _getPage();
-        });
-    }
-});
-App.page('lecture',function(){
-    var $list,$getMoreBtn,pageNo;
-    this.init = function(){
-        $list = $('#lecture_article ul');
-        $getMoreBtn = $list.next();
-        J.showMask();
-        pageNo = 1;
-        _getPage();
-        _subscribeEvents();
-    }
-    var _getPage = function(){
-        SzLibAPI.getForum(pageNo,function(data){
-            if(pageNo == 1){
-                _renderFirstPage(data);
-            }else{
-                _renderNextPage(data);
-            }
-            J.Scroll('#lecture_article');
-        });
-    }
-    var _renderFirstPage = function(data){
-        if(data.length > 0){
-            J.Scroll('#lecture_article').scrollTo(0,0);
-            J.tmpl($list,'tpl_lecture',data,'replace');
-            $getMoreBtn.text('点击加载更多...').show();
-        }else{
-            $getMoreBtn.hide();
-            J.Template.no_result($list);
-        }
-        J.hideMask();
-    }
-    var _renderNextPage = function(data){
-        if(data.length > 0){
-            J.tmpl($list,'tpl_lecture',data,'add');
-            $getMoreBtn.text('点击加载更多...').show();
-        }else{
-            pageNo--;
-            $getMoreBtn.text('亲，木有了~~').show();
-        }
-    }
-    var _subscribeEvents = function(){
-        $list.on('tap','li',function(){
-            var id = $(this).attr('data-id');
-            App.page('news').id = id;
-            J.Router.turnTo('#news_section');
-        });
-        $getMoreBtn.on('tap',function(){
-            $getMoreBtn.text('正在加载...');
-            pageNo++;
-            _getPage();
-        });
-        $('#lecture_refresh').on('tap',function(){
-            J.showMask();
-            pageNo = 1;
-            _getPage();
-        });
-    }
-});
-App.page('news',function(){
-    var $scrollWrapper;
-    this.init = function(){
-        $scrollWrapper = $('#news_article>div.scrollWrapper');
+        //隐藏回款新增按钮菜单
+ 
+
     }
     this.load = function(){
-        $scrollWrapper.width('auto').empty();
-        J.showMask();
-        SzLibAPI.getNewsDetail(this.id,function(data){
-            $('#news_section header .title').text(data.title);
-            $scrollWrapper.html(data.result);
-            if($scrollWrapper.find('table').length>0){
-                $scrollWrapper.width(700);
-            }
-            J.Scroll('#news_article',{hScroll:true}).scrollTo(0,0);
-            J.hideMask();
-        });
-    }
-});
-App.page('loanbook',function(){
-    var _this = this;
-    this.init = function(){
-        $('#loanbook_article ul').on('tap','li',function(){
-            var $this = $(this);
-            if(!$this.data('selected'))return;
-            if($this.hasClass('active')){
-                $this.removeClass('active');
-                $(this).children('.icon').attr('class','icon checkbox-unchecked');
+        if(this.mtype==4||(this.mtype==2&&this.dstatus!="0")){
+            $('#SaleList a#addlist').hide();
+        }else{
+            $('#SaleList a#addlist').show();
+        }
+        $('#SaleList_article ul').empty();
+        var customid = App.page('submenu').companyId;
+        var type = this.mtype;
+
+        $('#SaleList h1.title').html(arr0[type]+"列表");
+        $('#SaleList a#addlist').attr('href',arr1[type]);
+        J.showMask(); 
+        crmApi.getSaleList(customid,type,function(data){
+            J.hideMask(); 
+            if(data.status!=0){
+                J.showToast(data.message,'error');
             }else{
-                $this.addClass('active');
-                $(this).children('.icon').attr('class','icon checkbox-checked');
-            }
-        });
-        $('#btn_renew_book').tap(function(){
-            var barcodes = [];
-            $('#loanbook_article ul li.active').each(function(){
-                barcodes.push($(this).attr('data-barcode'));
-            });
-            J.showMask();
-            SzLibAPI.renewBook(barcodes.join(','),App.userInfo.loginName,App.userInfo.p,function(data){
-                if(data.status == 'success'){
-                    J.showToast("续借成功","error");
-                    _this.load();
+                if(data.result){
+                    J.tmpl('#SaleList_article ul','salelist_tpl',data); 
                 }else{
-                    J.hideMask();
-                    J.showToast("续借失败："+data.msg,"error");
-                }
-            });
-        });
-    }
-    this.load = function(){
-        J.showMask();
-        SzLibAPI.getLoanBooks(App.userInfo.recordNo,function(data){
-            if(data.length ==0){
-                J.Template.background('#loanbook_article ul','未找到相关记录','notification');
-            }else{
-                J.tmpl('#loanbook_article ul','tpl_loanbook',data);
-                J.Scroll('#loanbook_article');
-            }
-            J.hideMask();
-        });
-    }
-});
-App.page('reservebook',function(){
-    this.load = function(){
-        J.showMask();
-        SzLibAPI.getReservebooks(App.userInfo.recordNo,function(data){
-            if(data.length ==0){
-                J.Template.background('#reservebook_article ul','未找到相关记录','notification');
-            }else{
-                J.tmpl('#reservebook_article ul','tpl_reverse',data);
-            }
-            J.hideMask();
-        });
-    }
-});
-App.page('search',function(){
-    var _this = this;
-    this.searchParam = {};//由其他页面赋值
-    var $list,$getMoreBtn,pageNo;
-    this.init = function(){
-        $list = $('#search_article ul');
-        $getMoreBtn = $list.next();
-        _subscribeEvents();
-    }
-    this.load = function(){
-        $('#search_section header .title').text(this.searchParam.value);
-        J.Scroll('#search_article').scrollTo(0,0);
-        pageNo = 1;
-        J.showMask();
-        _search();
-    }
-
-    var _renderFirstPage = function(data){
-        if(data.length > 0){
-            J.Scroll('#search_article').scrollTo(0,0);
-            J.tmpl($list,'tpl_book_search',data,'replace');
-            if(data.length>10){
-                $getMoreBtn.text('点击加载更多...').show();
-            }
-        }else{
-            $getMoreBtn.hide();
-            J.Template.no_result($list);
-        }
-        J.hideMask();
-    }
-    var _renderNextPage = function(data){
-        if(data.length > 0){
-            J.tmpl($list,'tpl_book_search',data,'add');
-            $getMoreBtn.text('点击加载更多...').show();
-        }else{
-            pageNo--;
-            $getMoreBtn.text('亲，木有了~~').show();
-        }
-    }
-
-    var _subscribeEvents = function(){
-        $('#search_article ul').on('tap','li',function(){
-            App.page('book').recordNo = $(this).attr('data-recordno');
-            J.Router.turnTo('#book_section');
-        });
-        $getMoreBtn.on('tap',function(){
-            $getMoreBtn.text('正在加载...');
-            pageNo++;
-            _search();
-        });
-        $('#btn_menu_search').on('tap',function(){
-            var searchType = $('#menu_search_type').val();
-            var value = $('#menu_search_value').val();
-            var bookType = $('#menu_checkbox_reserve').data('checkbox') == 'checked'?'local_reserve':'';
-            if($.trim(value) == ''){
-                J.showToast('请输入关键字');
-                return;
-            }
-            _this.searchParam = {
-                value : value,
-                searchType : searchType,
-                bookType : bookType
-            }
-            J.Menu.hide();
-            _this.load();
-        })
-    }
-
-    var _search = function(){
-        SzLibAPI.queryBook(_this.searchParam.searchType,_this.searchParam.bookType,_this.searchParam.value,pageNo,function(data){
-            if(pageNo == 1){
-                _renderFirstPage(data);
-            }else{
-                _renderNextPage(data);
-            }
-            J.Scroll('#search_article');
-        });
-    }
-});
-App.page('selflib',function(){
-    this.init = function(){
-        J.Scroll('#selflib_section nav.header-secondary',{
-            hScroll:true,
-            hScrollbar : false
-        });
-        $('#selflib_section nav.header-secondary a').on('tap',function(){
-            var text = $(this).text();
-            var target = $('#selflib_article li.divider[data-area^="'+text+'"]')[0];
-            J.Scroll('#selflib_article').scrollToElement(target,300);
-        })
-        $('#selflib_article ul').on('tap','li[data-no]',function(){
-            App.page('lib_book').sslNo = $(this).attr('data-no');
-            App.page('lib_book').title = $(this).find('strong').text();
-            J.Router.turnTo('#lib_book_section');
-        });
-        $.getJSON('data/selflib.json',function(data){
-            J.tmpl('#selflib_article ul','tpl_selflib',data);
-            J.Scroll('#selflib_article');
-        });
-    }
-});
-App.page('adress',function(){
-    this.init = function(){
-        J.Scroll('#adress_section nav.header-secondary',{
-            hScroll:true,
-            hScrollbar : false
-        });
-        $('#adress_section nav.header-secondary a').on('tap',function(){
-            var text = $(this).text();
-            var target = $('#adress_article li.divider[data-area^="'+text+'"]')[0];
-            J.Scroll('#adress_article').scrollToElement(target,300);
-        })
-        $.getJSON('data/childlib.json',function(data){
-            J.tmpl('#adress_article ul','tpl_adress',data);
-            J.Scroll('#adress_article');
-        });
-    }
-});
-App.page('lib_book',function(){
-    var $list;
-    this.init = function(){
-        $list = $('#lib_book_article ul');
-        $list.on('tap','li',function(){
-            App.page('book').recordNo = $(this).attr('data-recordno');
-            J.Router.turnTo('#book_section');
-        });
-    }
-    this.load = function(){
-        $list.empty();
-        $('#lib_book_section header .title').text(this.title);
-        J.showMask();
-        SzLibAPI.getLibBookList(this.sslNo,function(data){
-            J.tmpl($list,'tpl_lib_book',data);
-            J.Scroll('#lib_book_article');
-            J.hideMask();
-        })
-    }
-});
-App.page('book',function(){
-    var bookData,$reviewList,$getMoreBtn,pageNo,doubanId;
-    this.recordNo = '';
-    this.init = function(){
-        $reviewList = $('#review_article ul');
-        $getMoreBtn = $reviewList.next();
-        $('#book_article').on('tap','li span.li-collapsibe',function(){
-            var text = $(this).text();
-            var $p = $(this).parent();
-            if(text == '展开'){
-                $p.css('maxHeight','1000px');
-                $(this).text('收起');
-            }else{
-                $p.css('maxHeight','100px');
-                $(this).text('展开');
-            }
-            J.Scroll('#book_article');
-        });
-        $('#review_article').on('articleshow',function(data){
-            var loaded = $(this).data('loaded');
-            if(loaded)return;
-            $(this).data('loaded',true);
-            if(bookData && bookData.doubanId){
-                doubanId = bookData.doubanId;
-            }
-            if(doubanId){
-                J.showMask();
-                pageNo = 1;
-                _getReviewPage();
-            }else{
-                J.Template.no_result($reviewList);
-            }
-        });
-        _subscribeEvents();
-    }
-    this.load = function(){
-        $('#review_article').data('loaded',false);
-        $('#book_article>div').empty();
-        $('#catalog_article>div').empty();
-        $('#review_article ul').empty();
-        J.showMask();
-        $('#book_section footer a:eq(0)').trigger('tap');
-        SzLibAPI.getBook(this.recordNo,function(data){
-            bookData = data;
-            $('#book_section header .title').text(data.title);
-            J.tmpl('#book_article>div','book_tpl',data);
-            J.Scroll('#book_article').scrollTo(0,0);
-            J.hideMask();
-            _renderDesc();
-        });
-    }
-
-    var _renderDesc = function(){
-        var $authorDesc =$('#author_desc_container'),$bookDesc=$('#book_desc_container'),$catalogArticle=$('#catalog_article>div.scrollWrapper');
-        $.ajax({
-            url:'http://202.112.150.126/indexc.php',
-            data : {
-                client:'szlib',
-                isbn:bookData.isbn
-            },
-            dataType:'jsonp',
-            error : function(){
-                $authorDesc.html('加载失败');
-                $bookDesc.html('加载失败');
-                $catalogArticle.html('加载失败');
-            },
-            success:function(data){
-                $authorDesc.html(data.result.authorIntroduction);
-                $bookDesc.html(data.result.summary);
-                $catalogArticle.html(data.result.catalog);
-                J.Scroll('#catalog_article').scrollTo(0,0);
-                J.Scroll('#book_article');
-                if(($authorDesc[0].scrollHeight-$authorDesc.height())>10){
-                    $authorDesc.append('<span class="li-collapsibe">展开</span>');
-                }
-                if(($bookDesc[0].scrollHeight-$bookDesc.height())>10){
-                    $bookDesc.append('<span class="li-collapsibe">展开</span>');
+                    J.Template.no_result("#SaleList_article ul");
+                    // J.showToast('暂无数据','error');
                 }
             }
+        },function(){
+            J.hideMask(); 
+            J.showToast('请检查您的网络连接','error');
         });
     };
-    var _getReviewPage = function(){
-        SzLibAPI.getBookReview(doubanId,pageNo,function(data){
-            if(pageNo == 1){
-                _renderFirstPage(data);
-            }else{
-                _renderNextPage(data);
-            }
-            J.Scroll('#review_article');
+})
+
+App.page('preSale',function(){
+    this.init = function(){
+        J.Scroll('#preSale article');
+        $("#preSale a.submit").on('tap','',function(){
+          // if(!_checkForm()) return false;
+           J.showMask();
+           param = $('#preSale form').serialize();
+           crmApi.setPreSale(param,function(data){
+               J.hideMask(); 
+               if(data.status!=0){
+                   J.showToast(data.message,'error');
+               }else{
+                    J.showToast('保存成功','success');
+                    J.Router.goTo("#index");
+               }
+           },function(){
+               J.hideMask();
+               J.showToast('请检查您的网络连接','error');
+           });
         });
-    }
-    var _renderFirstPage = function(data){
-        if(data.length > 0){
-            J.Scroll('#review_article').scrollTo(0,0);
-            J.tmpl($reviewList,'tpl_review',data,'replace');
-            $getMoreBtn.text('点击加载更多...').show();
-        }else{
-            $getMoreBtn.hide();
-            J.Template.no_result($reviewList);
+    };
+
+    var _checkForm = function(callback){
+        var num =/^\d{1,12}(\.\d{1,4})?$/;
+        if($('#Sample').val()==''){
+            J.showToast("产品样品不为空",'error');
+            return false;
         }
-        J.hideMask();
-    }
-    var _renderNextPage = function(data){
-        if(data.length > 0){
-            J.tmpl($reviewList,'tpl_review',data,'add');
-            $getMoreBtn.text('点击加载更多...').show();
-        }else{
-            pageNo--;
-            $getMoreBtn.text('亲，木有了~~').show();
+        if($('#Manual').val()==''){
+            J.showToast("产品手册不为空",'error');
+            return false;
         }
+        if($('#Present').val()==''){
+            J.showToast("礼品名称不为空",'error');
+            return false;
+        }
+        if($('#Count').val()==''||!num.test($('#Count').val())){
+            J.showToast("数量不为空或不是数字",'error');
+            return false;
+        }
+        if($('#FutureSale').val()==''||!num.test($('#FutureSale').val())){
+            J.showToast("预估数量不为空或不是数字",'error');
+            return false;
+        }
+        if($('#Discount').val()==''||!num.test($('#Discount').val())){
+            J.showToast("折扣不为空或不是数字",'error');
+            return false;
+        }
+        if($('#PlanDate').val()==''){
+            J.showToast("安排日期不为空",'error');
+            return false;
+        }
+        if($('#Color').val()==''){
+            J.showToast("标识不为空",'error');
+            return false;
+        }
+        return true;
     }
-    var _subscribeEvents = function(){
-        $reviewList.on('tap','li',function(){
-            var url = $(this).data("url");
-            window.open(url,'_system');
-        });
-        $getMoreBtn.on('tap',function(){
-            $getMoreBtn.text('正在加载...');
-            pageNo++;
-            _getReviewPage();
+
+    this.load = function(){
+        $('#preSale form')[0].reset();
+        $('input[name=pid]').val(App.page("submenu").pId);
+        if(!this.pid){
+            return;
+        }
+        J.showMask();
+
+        crmApi.getPreSale(this.pid,function(data){
+            J.hideMask();
+            $.each(data.result[0], function (key, value) {
+                $("#" + key.replace("Step1_", "")).val(value);
+            });
+        },function(){
+           J.hideMask();
+           J.showToast('请检查您的网络连接','error');
         });
     }
-});
+})
+
+App.page('afterSale',function(){
+    this.init = function(){
+        $("#afterSale a.submit").on('tap','',function(){
+           if(!_checkForm()) return false;
+           J.showMask();
+           param = $('#afterSale form').serialize();
+           crmApi.setAfterSale(param,function(data){
+               J.hideMask(); 
+               if(data.status!=0){
+                   J.showToast(data.message,'error');
+               }else{
+                   J.showToast('保存成功','success');
+                   J.Router.goTo("#index");
+               }
+           },function(){
+               J.hideMask();
+               J.showToast('请检查您的网络连接','error');
+           });
+        });
+    };
+
+    var _checkForm = function(callback){
+        var num =/^\d{1,12}(\.\d{1,4})?$/;
+        if($('#BackMoneyMode').val()==''){
+            J.showToast("回款方式不为空",'error');
+            return false;
+        }
+        if($('#BackMoneyTime').val()==''||!num.test($('#BackMoneyTime').val())){
+            J.showToast("回款周期不为空或不是数字",'error');
+            return false;
+        }
+        if($('#RealSaleCount').val()==''||!num.test($('#RealSaleCount').val())){
+            J.showToast("实际销量不为空或不是数字",'error');
+            return false;
+        }
+        if($('#Discount').val()==''||!num.test($('#Discount').val())){
+            J.showToast("折扣率不为空或不是数字",'error');
+            return false;
+        }
+        if($('#PresentCount').val()==''||!num.test($('#PresentCount').val())){
+            J.showToast("赠送数量不为空或不是数字",'error');
+            return false;
+        }
+        if($('#GeneOrder').val()==''){
+            J.showToast("生成订单不为空",'error');
+            return false;
+        }
+        if($('#BillType').val()==''){
+            J.showToast("发票类型不为空",'error');
+            return false;
+        }
+        return true;
+    }
+
+    this.load = function(){
+        $('#afterSale form')[0].reset();
+        $('input[name=pid]').val(App.page("submenu").pId);
+        if(!this.pid){
+            return;
+        }
+        J.showMask();
+
+        $("#afterSale a.submit").hide();
+        crmApi.getAfterSale(this.pid,function(data){
+            J.hideMask();
+            $.each(data.result[0], function (key, value) {
+                $("#" + key.replace("Step3_", "")).val(value);
+            });
+        },function(){
+           J.hideMask();
+           J.showToast('请检查您的网络连接','error');
+        });
+    }
+})
+
+App.page('inSale',function(){
+    this.init = function(){
+        $("#inSale a.submit").on('tap','',function(){
+           if(!_checkForm()) return false;
+           J.showMask();
+           param = $('#inSale form').serialize();
+           crmApi.setInSale(param,function(data){
+               J.hideMask(); 
+               if(data.status!=0){
+                    J.showToast(data.message,'error');
+               }else{
+                    J.showToast('保存成功','success');
+                    J.Router.goTo("#index");
+               }
+           },function(){
+               J.hideMask();
+               J.showToast('请检查您的网络连接','error');
+           });
+        });
+
+      $("#Over").change(
+         function () {
+             if ($("#Over").val() != 2) {
+                 $("#NotOkContainer").hide();
+                 $("#NotOk").val("");
+                 $("#ProcessContainer").hide();
+                 $("#Process").val("");
+                 $("#CountContainer").hide();
+                 $("#discount").val("");
+                 $("#num").val("");
+         }
+         else {
+             $("#NotOkContainer").show();
+             $("#ProcessContainer").show();
+             // $("#NotOk").val($("#").find("option:selected").text());
+         }
+     });
+
+     $("#Process").change(function () {
+         if ($("#Process").val() != 4) {
+             $("#CountContainer").hide();
+             $("#discount").val("");
+             $("#num").val("");
+         }
+         else {
+             $("#CountContainer").show();
+             // $("#NotOk").val($("#").find("option:selected").text());
+         }
+    });
+    };
+
+    var _checkForm = function(callback){
+        var num =/^\d{1,12}(\.\d{1,4})?$/;
+        if($('#Date').val()==''){
+            J.showToast("日期不为空",'error');
+            return false;
+        }
+        if($('#Boost').val()==''){
+            J.showToast("推进方式不为空",'error');
+            return false;
+        }
+        if($('#Receiver').val()==''){
+            J.showToast("接待人不为空",'error');
+            return false;
+        }
+        if($('#Over').val()==''){
+            J.showToast("成交情况不为空",'error');
+            return false;
+        }
+        if($('#Over').val()==2&&$('#NotOk').val()==''){
+            J.showToast("未成交原因不为空",'error');
+            return false;
+        }
+        if($('#Over').val()==2&&$('#Process').val()==''){
+            J.showToast("处理方式不为空",'error');
+            return false;
+        }
+        if($('#Process').val()==4&&!num.test($('#discount').val())){
+            J.showToast("折扣不为数字",'error');
+            return false;
+        }
+        if($('#Process').val()==4&&$('#discount').val()==''){
+            J.showToast("折扣不为空",'error');
+            return false;
+        }
+        return true;
+    }
+
+    this.load = function(){
+        $('#inSale form')[0].reset();
+        $('input[name=pid]').val(App.page("submenu").pId);
+        if(!this.pid){
+            return;
+        }
+        J.showMask();
+
+        $("#inSale a.submit").hide();
+        crmApi.getInSale(this.pid,this.sid,function(data){
+            J.hideMask();
+            $.each(data.result[0], function (key, value) {
+                $("#" + key.replace("Step2_", "")).val(value);
+            });
+        },function(){
+           J.hideMask();
+           J.showToast('请检查您的网络连接','error');
+        });
+    }
+})
+
+App.page('payment',function(){
+    this.init = function(){
+        $("#payment a.submit").hide();
+        $("#payment a.submit").on('tap','',function(){
+             J.showToast('无权修改或新增','error');
+           // if(!_checkForm()) return false;
+           // J.showMask();
+           // param = $('#payment form').serialize();
+           // crmApi.setPayment(param,function(data){
+           //     J.hideMask(); 
+           //     if(data.status!=0){
+           //          J.showToast(data.message,'error');
+           //     }else{
+           //          J.showToast('保存成功','success');
+           //          J.Router.goTo("#index");
+           //     }
+           // },function(){
+           //     J.hideMask();
+           //     J.showToast('请检查您的网络连接','error');
+           // });
+        });
+    };
+
+    var _checkForm = function(callback){
+        var num =/^\d{1,12}(\.\d{1,4})?$/;
+        if($('#PayAmount').val()==''||!num.test($('#PayAmount').val())){
+            J.showToast("应收款总额不为空或不是数字",'error');
+            return false;
+        }
+        if($('#RealAmount').val()==''||!num.test($('#RealAmount').val())){
+            J.showToast("已收款总额不为空或不是数字",'error');
+            return false;
+        }
+        if($('#BackMoneyMode').val()==''){
+            J.showToast("回款方式不为空",'error');
+            return false;
+        }
+        if($('#BackMoney').val()==''||!num.test($('#BackMoney').val())){
+            J.showToast("回款金额不为空或不是数字",'error');
+            return false;
+        }
+        return true;
+    }
+
+    this.load = function(){
+        $('#payment form')[0].reset();
+        $('input[name=pid]').val(App.page("submenu").pId);
+        if(!this.pid){
+            return;
+        }
+        J.showMask();
+
+        $("#payment a.submit").hide();
+        crmApi.getPayment(this.pid,this.sid,function(data){
+            J.hideMask();
+            $.each(data.result[0], function (key, value) {
+                $("#" + key.replace("Step4_", "")).val(value);
+            });
+        },function(){
+           J.hideMask();
+           J.showToast('请检查您的网络连接','error');
+        });
+    }
+})

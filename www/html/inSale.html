@@ -1,0 +1,84 @@
+<section id="inSale">
+      <header>
+            <nav class="left">
+                <a href="#" data-target="back" data-icon="undo">取消</a>
+            </nav>
+            <nav class="right">
+                <a href="#" data-target="" data-icon="checkmark" class="submit">保存</a>
+            </nav>
+            <h1 class="title">售中信息</h1>
+        </header>
+        <article data-scroll="true" id="form_article" class="active">
+        <div class="indented">
+            <form class="input-group">
+            <input type="input" value="" name="id" id="ID" style="display:none;">
+            <input type="input" value="" name="pid" id="PID" style="display:none;">
+            <div class="input-row">
+                <label>日期</label>
+                <input type="date" name="Date" id="Date" placeholder="请输入日期">
+            </div>
+            <div class="input-row">
+                <label>推进方式</label>
+                <div class="select-wraper">
+                <select name="Boost" id="Boost">
+                    <option value="">请选择</option>
+                    <option value="1">上门拜访</option>
+                    <option value="2">电话</option>
+                    <option value="3">短信</option>
+                </select>
+                </div>
+            </div>
+            <div class="input-row">
+                <label>接待人</label>
+                <input type="text" placeholder="请输入接待人" style="border: none;"  value="" name="Receiver" id="Receiver" required>
+            </div>
+            <div class="input-row" id="OverContainer">
+                <label>成交情况</label>
+                <div class="select-wraper">
+                <select name="Over" id="Over">
+                    <option value="" selected="selected">请选择</option>
+                    <option value="1">已成交</option>
+                    <option value="2">未成交</option>
+                </select>
+                </div>
+            </div>
+            <div class="input-row" style="display:none;" id="NotOkContainer">
+                <label>未成交原因</label>
+                <div class="select-wraper">
+                <select name="NotOk" id="NotOk">
+                    <option value="" selected="selected">请选择</option>
+                    <option value="1">客户不感兴趣</option>
+                    <option value="2">价格太高</option>
+                    <option value="3">不敢买这么多</option>
+                    <option value="4">客户使用其他产品，不想更换</option>
+                    <option value="5">其他原因</option>
+                </select>
+                </div>
+            </div>
+            <div class="input-row" style="display:none;" id="ProcessContainer">
+                <label>处理方式</label>
+                <div class="select-wraper">
+                <select name="Process" id="Process">
+                    <option value="" selected="selected">请选择</option>
+                    <option value="1">关闭此客户</option>
+                    <option value="2">修改方案，继续跟踪</option>
+                    <option value="3">暂时休眠</option>
+                    <option value="4">数量和折扣</option>
+                </select>
+                </div>
+            </div>
+            <div class="input-row" style="display:none;" id="CountContainer">
+                <label class="form-label col-sm-3">折扣：</label>
+                <input type="text" class="col-sm-3" name="discount" placeholder="折扣" id="discount"/><br/>
+                <label class="form-label col-sm-3">数量：</label>
+                <input type="text" class="col-sm-3" name="num" placeholder="数量" id="num"/>
+            </div>
+            <div class="input-row" style="display:block;">
+                <label>备注</label>
+                <textarea rows="5" name="Remark" id="Remark" placeholder="请输入备注信息"></textarea>
+            </div>
+            <!-- <input type="text" placeholder="备注" style="border: none;" id="username"  value=""> -->
+            </form>
+            </div>
+        </article>
+</section>
